@@ -1,0 +1,8 @@
+*.suo
+*.user
+*.pdb
+obj/*
+obj/Debug/*.*
+CECCE.StudioPedagogique.6.0.ReSharper.user
+[Dd]ebug*/
+[Rr]elease*/
