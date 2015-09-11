@@ -92,6 +92,7 @@ namespace WindowsFormsApplication1
         void m_Worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             lblWait.Visible = false;
+            dgvCompare.DataSource = (DataTable)e.Result;
         }
 
         /// <summary>
@@ -108,9 +109,10 @@ namespace WindowsFormsApplication1
             check_db(ref conn);
 
             ReadGatFile(ref conn, txtBase.Text, "older_data");
-            ReadGatFile(ref conn, txtBase.Text, "newer_data");
+            ReadGatFile(ref conn, txtChanges.Text, "newer_data");
             }
             DataTable dt = CompareData(ref conn);
+            e.Result = dt;
         }
 
 #endregion
@@ -126,6 +128,7 @@ namespace WindowsFormsApplication1
             dt.Columns.Add("OAddr_ID").Caption = "Old Address";
             dt.Columns.Add("Geom").Caption = "New Geo point";
             dt.Columns.Add("OGeom").Caption = "Old Geo point";
+            dt.Columns.Add("ChangeState").Caption = "Change State";
             try
             {
                 SQLiteCommand cmd = new SQLiteCommand(conn);
@@ -134,18 +137,32 @@ namespace WindowsFormsApplication1
                     conn.Open();
                 }
                 cmd.CommandText = @"select * from (
-                                                    select a.ENTITID,a.CODEID,a.MUNID,a.NUMERO_CIV,a.GENERIQUE,a.LIAISON,a.SPECIFIQUE,a.DIRECTION,a.ADDR_COMPLE,a.RUESID,a.GEOM,b.ENTITID ENTITID_1,b.CODEID CODEID_1,b.MUNID MUNID_1,b.NUMERO_CIV NUMERO_CIV_1,b.GENERIQUE GENERIQUE_1,b.LIAISON LIAISON_1,b.SPECIFIQUE SPECIFIQUE_1,b.DIRECTION DIRECTION_1,b.ADDR_COMPLE ADDR_COMPLE_1,b.RUESID RUESID_1,b.GEOM GEOM_1 from newer_data a 
+                                                    select a.ENTITEID,a.CODEID,a.MUNID,a.NUMERO_CIV,a.GENERIQUE,a.LIAISON,a.SPECIFIQUE,a.DIRECTION,a.ADDR_COMPLE,a.RUESID,a.GEOM,b.ENTITEID ENTITEID_1,b.CODEID CODEID_1,b.MUNID MUNID_1,b.NUMERO_CIV NUMERO_CIV_1,b.GENERIQUE GENERIQUE_1,b.LIAISON LIAISON_1,b.SPECIFIQUE SPECIFIQUE_1,b.DIRECTION DIRECTION_1,b.ADDR_COMPLE ADDR_COMPLE_1,b.RUESID RUESID_1,b.GEOM GEOM_1 from newer_data a 
                                                     left join older_data b 
-                                                    on a.ENTITE_ID=b.ENTITE_ID
+                                                    on a.ENTITEID=b.ENTITEID
                                                     where (b.ENTITEID is null) or (a.ADDR_COMPLE<>b.ADDR_COMPLE)
                                                     UNION ALL
-                                                    select b.ENTITID,b.CODEID,b.MUNID,b.NUMERO_CIV,b.GENERIQUE,b.LIAISON,b.SPECIFIQUE,b.DIRECTION,b.ADDR_COMPLE,b.RUESID,b.GEOM,a.ENTITID ENTITID_1,a.CODEID CODEID_1,a.MUNID MUNID_1,a.NUMERO_CIV NUMERO_CIV_1,a.GENERIQUE GENERIQUE_1,a.LIAISON LIAISON_1,a.SPECIFIQUE SPECIFIQUE_1,a.DIRECTION DIRECTION_1,a.ADDR_COMPLE ADDR_COMPLE_1,a.RUESID RUESID_1,a.GEOM GEOM_1 from older_data a
+                                                    select b.ENTITEID,b.CODEID,b.MUNID,b.NUMERO_CIV,b.GENERIQUE,b.LIAISON,b.SPECIFIQUE,b.DIRECTION,b.ADDR_COMPLE,b.RUESID,b.GEOM,a.ENTITEID ENTITEID_1,a.CODEID CODEID_1,a.MUNID MUNID_1,a.NUMERO_CIV NUMERO_CIV_1,a.GENERIQUE GENERIQUE_1,a.LIAISON LIAISON_1,a.SPECIFIQUE SPECIFIQUE_1,a.DIRECTION DIRECTION_1,a.ADDR_COMPLE ADDR_COMPLE_1,a.RUESID RUESID_1,a.GEOM GEOM_1 from older_data a
                                                     left join newer_data b
-                                                    on a.ENTITE_ID=b.ENTITE_ID
+                                                    on a.ENTITEID=b.ENTITEID
                                                     where (b.ENTITEID is null)                                            
                                                    ) as BQ
                                       order by ADDR_COMPLE_1";
                 SQLiteDataReader dr = cmd.ExecuteReader();
+                while (dr.Read())
+                {
+                    DataRow dtr = dt.NewRow();
+                    dtr["Entity_ID"] = dr["ENTITEID"];
+                    dtr["OEntity_ID"] = dr["ENTITEID_1"];
+                    dtr["Addr_ID"] = dr["ADDR_COMPLE"];
+                    dtr["OAddr_ID"] = dr["ADDR_COMPLE_1"];
+                    dtr["Geom"] = dr["GEOM"];
+                    dtr["OGeom"] = dr["GEOM_1"];
+                    dtr["ChangeState"] = GetChangeState(ref dr);
+                    dt.Rows.Add(dtr);
+                    
+                }
+               
 
             }
             catch (Exception ex)
@@ -162,6 +179,22 @@ namespace WindowsFormsApplication1
 
 
             return dt;
+        }
+        private String GetChangeState(ref SQLiteDataReader dr)
+        {
+            if (dr["ENTITEID"] == DBNull.Value)
+            {
+                return "Deletion";
+            }
+            else if (dr["ENTITEID_1"] == DBNull.Value)
+            {
+                return "New Node";
+            }
+            else if (dr["ADDR_COMPLE"] != dr["ADDR_COMPLE_1"])
+            {
+                return "Address Change";
+            }
+            return "";
         }
         private void ReadGatFile(ref SQLiteConnection conn,String filepath,String SQLTableName)
         {
@@ -247,6 +280,8 @@ namespace WindowsFormsApplication1
                 cmd.CommandText = String.Format(emptytbl, "newer_data");
                 cmd.ExecuteNonQuery();
             }
+            cmd.CommandText = "VACUUM";
+            cmd.ExecuteNonQuery();
 
             conn.Close();
 

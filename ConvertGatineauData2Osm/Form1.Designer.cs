@@ -35,8 +35,10 @@
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.ckbReload = new System.Windows.Forms.CheckBox();
+            this.lblWait = new System.Windows.Forms.Label();
             this.cmdWrite = new System.Windows.Forms.Button();
-            this.dataGridView1 = new System.Windows.Forms.DataGridView();
+            this.dgvCompare = new System.Windows.Forms.DataGridView();
             this.label3 = new System.Windows.Forms.Label();
             this.cmdCompare = new System.Windows.Forms.Button();
             this.txtChanges = new System.Windows.Forms.TextBox();
@@ -44,11 +46,9 @@
             this.label2 = new System.Windows.Forms.Label();
             this.txtBase = new System.Windows.Forms.TextBox();
             this.cmdBrowseCO = new System.Windows.Forms.Button();
-            this.lblWait = new System.Windows.Forms.Label();
-            this.ckbReload = new System.Windows.Forms.CheckBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvCompare)).BeginInit();
             this.SuspendLayout();
             // 
             // cmdBrowse
@@ -114,7 +114,7 @@
             this.groupBox2.Controls.Add(this.ckbReload);
             this.groupBox2.Controls.Add(this.lblWait);
             this.groupBox2.Controls.Add(this.cmdWrite);
-            this.groupBox2.Controls.Add(this.dataGridView1);
+            this.groupBox2.Controls.Add(this.dgvCompare);
             this.groupBox2.Controls.Add(this.label3);
             this.groupBox2.Controls.Add(this.cmdCompare);
             this.groupBox2.Controls.Add(this.txtChanges);
@@ -129,6 +129,29 @@
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Compare DataSets";
             // 
+            // ckbReload
+            // 
+            this.ckbReload.AutoSize = true;
+            this.ckbReload.Checked = true;
+            this.ckbReload.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.ckbReload.Location = new System.Drawing.Point(459, 28);
+            this.ckbReload.Name = "ckbReload";
+            this.ckbReload.Size = new System.Drawing.Size(133, 17);
+            this.ckbReload.TabIndex = 15;
+            this.ckbReload.Text = "Reload Data from CSV";
+            this.ckbReload.UseVisualStyleBackColor = true;
+            // 
+            // lblWait
+            // 
+            this.lblWait.AutoSize = true;
+            this.lblWait.Font = new System.Drawing.Font("Microsoft Sans Serif", 30F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblWait.Location = new System.Drawing.Point(233, 76);
+            this.lblWait.Name = "lblWait";
+            this.lblWait.Size = new System.Drawing.Size(266, 46);
+            this.lblWait.TabIndex = 14;
+            this.lblWait.Text = "Please Wait...";
+            this.lblWait.Visible = false;
+            // 
             // cmdWrite
             // 
             this.cmdWrite.Location = new System.Drawing.Point(540, 52);
@@ -138,13 +161,16 @@
             this.cmdWrite.Text = "Write Compare Difference";
             this.cmdWrite.UseVisualStyleBackColor = true;
             // 
-            // dataGridView1
+            // dgvCompare
             // 
-            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dataGridView1.Location = new System.Drawing.Point(9, 81);
-            this.dataGridView1.Name = "dataGridView1";
-            this.dataGridView1.Size = new System.Drawing.Size(742, 161);
-            this.dataGridView1.TabIndex = 12;
+            this.dgvCompare.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.dgvCompare.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvCompare.Location = new System.Drawing.Point(9, 81);
+            this.dgvCompare.Name = "dgvCompare";
+            this.dgvCompare.Size = new System.Drawing.Size(742, 161);
+            this.dgvCompare.TabIndex = 12;
             // 
             // label3
             // 
@@ -208,27 +234,6 @@
             this.cmdBrowseCO.UseVisualStyleBackColor = true;
             this.cmdBrowseCO.Click += new System.EventHandler(this.BrowseButton_Click);
             // 
-            // lblWait
-            // 
-            this.lblWait.AutoSize = true;
-            this.lblWait.Font = new System.Drawing.Font("Microsoft Sans Serif", 30F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblWait.Location = new System.Drawing.Point(233, 76);
-            this.lblWait.Name = "lblWait";
-            this.lblWait.Size = new System.Drawing.Size(266, 46);
-            this.lblWait.TabIndex = 14;
-            this.lblWait.Text = "Please Wait...";
-            this.lblWait.Visible = false;
-            // 
-            // ckbReload
-            // 
-            this.ckbReload.AutoSize = true;
-            this.ckbReload.Location = new System.Drawing.Point(459, 28);
-            this.ckbReload.Name = "ckbReload";
-            this.ckbReload.Size = new System.Drawing.Size(133, 17);
-            this.ckbReload.TabIndex = 15;
-            this.ckbReload.Text = "Reload Data from CSV";
-            this.ckbReload.UseVisualStyleBackColor = true;
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -242,7 +247,7 @@
             this.groupBox1.PerformLayout();
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvCompare)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -257,7 +262,7 @@
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.GroupBox groupBox2;
         private System.Windows.Forms.Button cmdWrite;
-        private System.Windows.Forms.DataGridView dataGridView1;
+        private System.Windows.Forms.DataGridView dgvCompare;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Button cmdCompare;
         private System.Windows.Forms.TextBox txtChanges;
