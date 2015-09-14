@@ -144,11 +144,10 @@
             // lblWait
             // 
             this.lblWait.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.lblWait.AutoSize = true;
             this.lblWait.Font = new System.Drawing.Font("Microsoft Sans Serif", 30F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblWait.Location = new System.Drawing.Point(233, 76);
+            this.lblWait.Location = new System.Drawing.Point(27, 76);
             this.lblWait.Name = "lblWait";
-            this.lblWait.Size = new System.Drawing.Size(266, 46);
+            this.lblWait.Size = new System.Drawing.Size(706, 46);
             this.lblWait.TabIndex = 14;
             this.lblWait.Text = "Please Wait...";
             this.lblWait.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -162,6 +161,7 @@
             this.cmdWrite.TabIndex = 13;
             this.cmdWrite.Text = "Write Compare Difference";
             this.cmdWrite.UseVisualStyleBackColor = true;
+            this.cmdWrite.Click += new System.EventHandler(this.cmdWrite_Click);
             // 
             // dgvCompare
             // 
