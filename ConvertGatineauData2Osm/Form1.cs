@@ -7,6 +7,11 @@ using System.Text;
 using System.Windows.Forms;
 using System.Data.SQLite;
 using System.Threading;
+using System.Net;
+using System.Web;
+using System.IO;
+using System.Xml;
+using System.Xml.XPath;
 
 namespace WindowsFormsApplication1
 {
@@ -18,8 +23,13 @@ namespace WindowsFormsApplication1
             m_Worker = new BackgroundWorker();
             m_Worker.DoWork += new DoWorkEventHandler(m_Worker_DoWork);
             m_Worker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(m_Worker_RunWorkerCompleted);
+            m_Worker.ProgressChanged += m_Worker_ProgressChanged;
+            lblWait.Left = (this.ClientSize.Width - lblWait.Width) / 2;
+            lblWait.Top = (this.ClientSize.Height - lblWait.Height) / 2;
         }
-        UInt64 node_id = 0;
+
+
+        UInt64 m_node_id = 0;
         BackgroundWorker m_Worker;
 
         private void BrowseButton_Click(object sender, EventArgs e)
@@ -81,7 +91,15 @@ namespace WindowsFormsApplication1
         private void cmdCompare_Click(object sender, EventArgs e)
         {
             lblWait.Visible = true;
-            m_Worker.RunWorkerAsync(ckbReload.Checked);               
+            m_Worker.WorkerReportsProgress = true;
+            m_Worker.RunWorkerAsync(ckbReload.Checked);
+            
+        }
+
+
+        void m_Worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            lblWait.Text = e.ProgressPercentage + "%..." + e.UserState.ToString();
         }
 
         /// <summary>
@@ -106,12 +124,16 @@ namespace WindowsFormsApplication1
 
             SQLiteConnection conn = new SQLiteConnection(@"Data Source=" + System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + @"\compare.db;FailIfMissing=false;Version=3");
             if((bool)e.Argument){
-            check_db(ref conn);
+                check_db(ref conn);
 
-            ReadGatFile(ref conn, txtBase.Text, "older_data");
-            ReadGatFile(ref conn, txtChanges.Text, "newer_data");
+                m_Worker.ReportProgress(0, "Loading Old Changeset");
+                ReadGatFile(ref conn, txtBase.Text, "older_data");
+                m_Worker.ReportProgress(50, "Loading New Changeset");
+                ReadGatFile(ref conn, txtChanges.Text, "newer_data");
+                m_Worker.ReportProgress(90, "Comparing Data");
             }
             DataTable dt = CompareData(ref conn);
+            m_Worker.ReportProgress(100, "Done!");
             e.Result = dt;
         }
 
@@ -119,6 +141,72 @@ namespace WindowsFormsApplication1
 
 
 #region "Helper Functions"
+        private String getOSMID(String Addr_No, String Street)
+        {
+            String searchquery = "http://overpass-api.de/api/interpreter?data="+ System.Web.HttpUtility.UrlEncode(String.Format(@"[out:xml][timeout:2500];area(3605356213)->.searchArea;
+                                    (
+                                        node[""addr:housenumber""=""{0}""][""addr:street""=""{1}""](area.searchArea);
+                                        way[""addr:housenumber""=""{0}""][""addr:street""=""{1}""](area.searchArea);
+                                    );
+                                    out body;
+                                    >;
+                                    out skel qt;",Addr_No,Street));
+            String responsexml;
+            // used to build entire input
+            StringBuilder sb = new StringBuilder();
+
+            // used on each read operation
+            byte[] buf = new byte[8192];
+
+            // prepare the web page we will be asking for
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(searchquery);
+
+            // execute the request
+            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+
+            // we will read data via the response stream
+            Stream resStream = response.GetResponseStream();
+
+            string tempString = null;
+            int count = 0;
+
+            do
+            {
+                // fill the buffer with data
+                count = resStream.Read(buf, 0, buf.Length);
+
+                // make sure we read some data
+                if (count != 0)
+                {
+                    // translate from bytes to UTF-8 text
+                    tempString = Encoding.UTF8.GetString(buf, 0, count);
+
+                    // continue building the string
+                    sb.Append(tempString);
+                }
+            }
+            while (count > 0); // any more data to read?
+
+            XmlDocument xml = new XmlDocument();
+            xml.LoadXml(sb.ToString());
+            sb.Clear();//output for node or way xml
+
+            //Address is a Node ***************************************
+            //Get nodes that have children : we need Tag elements
+            //Check if data matches query address
+            //add to return buffer
+            //End Address is a Node ***********************************
+
+            //Address is a Way ****************************************
+            //Get way tags
+            //Check if data matches query address
+            //Add to return buffer
+            //fetch nodes associated with way.
+            //End Address is a Way ************************************
+
+            return sb.ToString();
+
+        }
         private DataTable CompareData(ref SQLiteConnection conn)
         {
             DataTable dt = new DataTable();
@@ -308,8 +396,8 @@ namespace WindowsFormsApplication1
 
         private void write_addressnode(ref System.IO.StreamWriter sw, ref String[] info)
         {
-            node_id++;
-            sw.WriteLine("<node id='-" + node_id.ToString() + "' lat='" + extract_lat_long(info[10], true) + "' lon='" + extract_lat_long(info[10], false) + "'>");
+            m_node_id++;
+            sw.WriteLine("<node id='-" + m_node_id.ToString() + "' lat='" + extract_lat_long(info[10], true) + "' lon='" + extract_lat_long(info[10], false) + "'>");
             sw.WriteLine("\t<tag k='addr:city' v='Gatineau' />");
             sw.WriteLine("\t<tag k='addr:housenumber' v='" + info[3].ToString() + "' />");
             sw.WriteLine("\t<tag k='addr:street' v='" + iif(info[4].Replace("'", "&apos;").Trim() != String.Empty, info[4].Replace("'", "&apos;").Trim() + " ", "") + iif(info[5].Replace("'", "&apos;").Trim() != String.Empty, info[5].Replace("'", "&apos;").Trim() + " ", "") + iif(info[6].Replace("'", "&apos;").Trim() != String.Empty, info[6].Replace("'", "&apos;").Trim(), "") + "' />");
