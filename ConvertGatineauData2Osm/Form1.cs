@@ -106,6 +106,7 @@ namespace WindowsFormsApplication1
             m_Worker.WorkerReportsProgress = true;
             List<Object> args = new List<Object>();
             args.Add(WorkType.writeout);
+            args.Add(dgvCompare.DataSource);
             m_Worker.RunWorkerAsync(args);
         }
 
@@ -123,8 +124,31 @@ namespace WindowsFormsApplication1
         void m_Worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             lblWait.Visible = false;
-            dgvCompare.DataSource = (DataTable)e.Result;
-            //todo switch compare/writeout, bind result column headers
+            switch ((WorkType)((List<Object>)e.Result)[0])
+            {
+                case WorkType.compare:
+                    dgvCompare.AutoGenerateColumns = false;
+                    dgvCompare.Columns.Clear();
+                    DataTable src = (DataTable)((List<Object>)e.Result)[1];
+                    foreach (DataColumn dc in src.Columns)
+                    {
+                        if (dc.Caption != "Hidden")
+                        {
+                            DataGridViewColumn dgvc = new DataGridViewTextBoxColumn();
+                            dgvc.Name=dc.ColumnName;
+                            dgvc.HeaderText=dc.Caption;
+                            dgvc.DataPropertyName=dc.ColumnName;
+                            dgvc.ReadOnly = true;
+                            dgvCompare.Columns.Add(dgvc);
+                        }
+                    }
+                    dgvCompare.DataSource = src;
+                    
+                break;
+                case WorkType.writeout:
+                break;
+            }                      
+            
         }
 
         /// <summary>
@@ -136,27 +160,38 @@ namespace WindowsFormsApplication1
         void m_Worker_DoWork(object sender, DoWorkEventArgs e)
         {
             List<Object> args = (List<Object>)e.Argument;
-           switch((WorkType)args[0]){
+            List<Object> result = new List<Object>();
+            result.Add((WorkType)args[0]);
+            switch((WorkType)args[0]){
                case WorkType.compare:            
-                SQLiteConnection conn = new SQLiteConnection(@"Data Source=" + System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + @"\compare.db;FailIfMissing=false;Version=3");
-                if ((bool)args[1])
-                {
-                    check_db(ref conn);
+                   SQLiteConnection conn = new SQLiteConnection(@"Data Source=" + System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + @"\compare.db;FailIfMissing=false;Version=3");
+                   if ((bool)args[1])
+                   {
+                       check_db(ref conn);
 
-                    m_Worker.ReportProgress(0, "Loading Old Changeset");
-                    ReadGatFile(ref conn, txtBase.Text, "older_data");
-                    m_Worker.ReportProgress(50, "Loading New Changeset");
-                    ReadGatFile(ref conn, txtChanges.Text, "newer_data");
-                    m_Worker.ReportProgress(90, "Comparing Data");
-                }
-                DataTable dt = CompareData(ref conn);
-                m_Worker.ReportProgress(100, "Done!");
-                e.Result = dt;
+                       m_Worker.ReportProgress(0, "Loading Old Changeset");
+                       ReadGatFile(ref conn, txtBase.Text, "older_data");
+                       m_Worker.ReportProgress(50, "Loading New Changeset");
+                       ReadGatFile(ref conn, txtChanges.Text, "newer_data");
+                       m_Worker.ReportProgress(90, "Comparing Data");
+                   }
+                   DataTable dt = CompareData(ref conn);
+                   m_Worker.ReportProgress(100, "Done!");
+                   result.Add(dt);
                 break;
                case WorkType.writeout:
-
-                break;
+                    //Write Header
+                    StreamWriter sw = new StreamWriter("gatineauchangeset.osm");
+                    write_fileheader(ref sw);
+                    //Process entry by entry
+                    write_changeset(ref sw,(DataSet)((List<Object>)args)[1]);
+                    //Write Footer
+                    sw.WriteLine("</osm>");
+                    sw.Flush();
+                    sw.Close();
+               break;
             }
+           e.Result = result;
            
         }
 
@@ -310,6 +345,11 @@ namespace WindowsFormsApplication1
             XmlDocument xml = new XmlDocument();
             xml.LoadXml(sb.ToString());
             return xml.SelectNodes("//osm/" + Type.ToString())[0].OuterXml;
+        }
+
+        private void write_changeset(ref StreamWriter sw, DataSet dt)
+        {
+
         }
         private DataTable CompareData(ref SQLiteConnection conn)
         {
