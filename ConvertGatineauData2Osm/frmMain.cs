@@ -15,9 +15,9 @@ using System.Xml.XPath;
 using System.Drawing;
 namespace WindowsFormsApplication1
 {
-    public partial class Form1 : Form
+    public partial class frmMain : Form
     {
-        public Form1()
+        public frmMain()
         {
             InitializeComponent();
             m_Worker = new BackgroundWorker();
@@ -26,9 +26,22 @@ namespace WindowsFormsApplication1
             m_Worker.ProgressChanged += m_Worker_ProgressChanged;
             lblWait.Left = (this.ClientSize.Width - lblWait.Width) / 2;
             lblWait.Top = (this.ClientSize.Height - lblWait.Height) / 2;
+            monthstr.Add(1,"Jan");
+            monthstr.Add(2,"Feb");
+            monthstr.Add(3,"Mar");
+            monthstr.Add(4,"Apr");
+            monthstr.Add(5,"May");
+            monthstr.Add(6,"Jun");
+            monthstr.Add(7,"Jul");
+            monthstr.Add(8,"Aug");
+            monthstr.Add(9,"Sept");
+            monthstr.Add(10,"Oct");
+            monthstr.Add(11,"Nov");
+            monthstr.Add(12,"Dec");            
         }
         private enum OSMEntityType{node,way,relation}
         private enum WorkType { compare, writeout };
+        private Dictionary<int, String> monthstr = new Dictionary<int,string>();
 
 
         UInt64 m_node_id = 0;
@@ -61,6 +74,7 @@ namespace WindowsFormsApplication1
 
         private void cmdProcessSingle_Click(object sender, EventArgs e)
         {
+            m_node_id = 0;
             try
             {
                 String curr = "";
@@ -92,6 +106,7 @@ namespace WindowsFormsApplication1
 
         private void cmdCompare_Click(object sender, EventArgs e)
         {
+            m_node_id = 0;
             lblWait.Visible = true;
             m_Worker.WorkerReportsProgress = true;
             List<Object> args = new List<Object>();
@@ -102,12 +117,14 @@ namespace WindowsFormsApplication1
 
         private void cmdWrite_Click(object sender, EventArgs e)
         {
+            m_node_id = 0;
             lblWait.Visible = true;
             m_Worker.WorkerReportsProgress = true;
             List<Object> args = new List<Object>();
             args.Add(WorkType.writeout);
             args.Add(dgvCompare.DataSource);
             m_Worker.RunWorkerAsync(args);
+            
         }
 
 
@@ -184,7 +201,7 @@ namespace WindowsFormsApplication1
                     StreamWriter sw = new StreamWriter("gatineauchangeset.osm");
                     write_fileheader(ref sw);
                     //Process entry by entry
-                    write_changeset(ref sw,(DataSet)((List<Object>)args)[1]);
+                    write_changeset(ref sw,(DataTable)((List<Object>)args)[1]);
                     //Write Footer
                     sw.WriteLine("</osm>");
                     sw.Flush();
@@ -201,14 +218,7 @@ namespace WindowsFormsApplication1
 #region "Helper Functions"
         private String getOSMID(String Addr_No, String Street,ref OSMEntityType Type)
         {
-            String searchquery = "http://overpass-api.de/api/interpreter?data="+ System.Web.HttpUtility.UrlEncode(String.Format(@"[out:xml][timeout:2500];area(3605356213)->.searchArea;
-                                    (
-                                        node[""addr:housenumber""=""{0}""][""addr:street""=""{1}""](area.searchArea);
-                                        way[""addr:housenumber""=""{0}""][""addr:street""=""{1}""](area.searchArea);
-                                    );
-                                    out body;
-                                    >;
-                                    out skel qt;",Addr_No,Street));
+            String searchquery = "http://www.overpass-api.de/api/xapi_meta?*" + System.Web.HttpUtility.UrlEncode(String.Format("[addr:housenumber={0}][addr:street={1}][bbox=-76.1977822,45.29.25.678,-75.0442178,45.7974984]",Addr_No,Street));
             String responsexml;
             // used to build entire input
             StringBuilder sb = new StringBuilder();
@@ -220,8 +230,21 @@ namespace WindowsFormsApplication1
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(searchquery);
 
             // execute the request
-            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-
+            HttpWebResponse response=null;
+            Boolean failed = true;
+            while (failed)
+            {
+                try
+                {
+                    response = (HttpWebResponse)request.GetResponse();
+                    failed = false;
+                }
+                catch (Exception ex)
+                {
+                    Thread.Sleep(30000);
+                    request=(HttpWebRequest)WebRequest.Create(searchquery);
+                }
+            }
             // we will read data via the response stream
             Stream resStream = response.GetResponseStream();
 
@@ -257,7 +280,7 @@ namespace WindowsFormsApplication1
                 //Check if data matches query address
                 if(node.InnerXml.ToString().Contains("<tag k=\"addr:source\" v=\"Gatineau.ca/donneesouvertes"))
                 {   //add to return buffer
-                    sb.AppendLine(node.OuterXml.ToString());
+                    sb.AppendLine(node.OuterXml);
                     Type = OSMEntityType.node;
                 }
             }       
@@ -282,17 +305,15 @@ namespace WindowsFormsApplication1
                             refNodes.Add(nd.Attributes["ref"].Value);
                         }
                     }
-                    ways = null;
-                    //Download nodes associated with way (to get version code and other info)
                     XmlNodeList allNodeTags = xml.SelectNodes("//osm/node");
                     foreach (XmlNode nd in allNodeTags)
                     {
                         if (refNodes.Contains(nd.Attributes["id"].Value))
                         {
-                            sb.AppendLine(getOSMVersionIDs(nd.Attributes["id"].Value,OSMEntityType.node));
+                            sb.AppendLine(nd.OuterXml);
                         }
                     }
-                    sb.AppendLine(getOSMVersionIDs(nodes[i].Attributes["id"].Value, OSMEntityType.way));
+                    sb.AppendLine(nodes[i].OuterXml);
                 }
             }  
             //Get way tags
@@ -304,51 +325,139 @@ namespace WindowsFormsApplication1
             return sb.ToString();
 
         }
-        private String getOSMVersionIDs(String ID, OSMEntityType Type)
+        //private String getOSMVersionIDs(String ID, OSMEntityType Type)
+        //{
+
+        //    String searchquery = "http://api.openstreetmap.org/" + String.Format(@"api/0.6/{0}/{1}", Type.ToString(), ID);
+        //    // used to build entire input
+        //    StringBuilder sb = new StringBuilder();
+
+        //    // used on each read operation
+        //    byte[] buf = new byte[8192];
+
+        //    // prepare the web page we will be asking for
+        //    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(searchquery);
+
+        //    // execute the request
+        //    HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+
+        //    // we will read data via the response stream
+        //    Stream resStream = response.GetResponseStream();
+
+        //    string tempString = null;
+        //    int count = 0;
+
+        //    do
+        //    {
+        //        // fill the buffer with data
+        //        count = resStream.Read(buf, 0, buf.Length);
+
+        //        // make sure we read some data
+        //        if (count != 0)
+        //        {
+        //            // translate from bytes to UTF-8 text
+        //            tempString = Encoding.UTF8.GetString(buf, 0, count);
+
+        //            // continue building the string
+        //            sb.Append(tempString);
+        //        }
+        //    }
+        //    while (count > 0); // any more data to read?
+        //    XmlDocument xml = new XmlDocument();
+        //    xml.LoadXml(sb.ToString());
+        //    return xml.SelectNodes("//osm/" + Type.ToString())[0].OuterXml;
+        //}
+
+        private void write_changeset(ref StreamWriter sw, DataTable dt)
         {
+            int i = 0;
 
-            String searchquery = "http://api.openstreetmap.org/" + String.Format(@"api/0.6/{0}/{1}", Type.ToString(), ID);
-            // used to build entire input
-            StringBuilder sb = new StringBuilder();
-
-            // used on each read operation
-            byte[] buf = new byte[8192];
-
-            // prepare the web page we will be asking for
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(searchquery);
-
-            // execute the request
-            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-
-            // we will read data via the response stream
-            Stream resStream = response.GetResponseStream();
-
-            string tempString = null;
-            int count = 0;
-
-            do
+            foreach (DataRow dr in dt.Rows)
             {
-                // fill the buffer with data
-                count = resStream.Read(buf, 0, buf.Length);
-
-                // make sure we read some data
-                if (count != 0)
+                i++;
+                if (i % 15==0)
                 {
-                    // translate from bytes to UTF-8 text
-                    tempString = Encoding.UTF8.GetString(buf, 0, count);
-
-                    // continue building the string
-                    sb.Append(tempString);
+                    sw.Flush();
+                    Thread.Sleep(10000);
+                }
+                Decimal perc;
+                String resultset;
+                OSMEntityType Type;
+                perc = ((Decimal)i / (Decimal)dt.Rows.Count) * 100;
+                switch (dr["ChangeState"].ToString())
+                {
+                    case "Deletion":
+                        m_Worker.ReportProgress(Int32.Parse(Math.Round(perc).ToString()), "Deletion");
+                        Type = OSMEntityType.relation;
+                        resultset = getOSMID(dr["OAddr_No"].ToString().Trim(), dr["OStreetName"].ToString().Trim(), ref Type);
+                        switch (Type)
+                        {
+                            case OSMEntityType.node:
+                                resultset = resultset.Replace("<node", "<node action='delete'");
+                                break;
+                            case OSMEntityType.way:
+                                resultset = resultset.Replace("<way", "<way action='modify'");
+                                resultset= resultset.Replace("<tag k=\"addr:housenumber\" v=\"" + dr["OAddr_No"].ToString().Trim() + "\" />", "");
+                                resultset = resultset.Replace("<tag k=\"addr:street\" v=\"" + dr["OStreetName"].ToString().Trim() + "\" />", "");
+                                break;
+                        }                      
+                        
+                        sw.WriteLine(resultset);
+                    break;
+                    case "Address Change":
+                        m_Worker.ReportProgress(Int32.Parse(Math.Round(perc).ToString()), "Processing Address Change"); 
+                        Type = OSMEntityType.relation;
+                        resultset = getOSMID(dr["OAddr_No"].ToString().Trim(), dr["OStreetName"].ToString().Trim(), ref Type);
+                        resultset=resultset.Replace("<tag k=\"addr:housenumber\" v=\"" + dr["OAddr_No"].ToString().Trim() + "\" />", "<tag k=\"addr:housenumber\" v=\"" + dr["Addr_No"].ToString().Trim() + "\" />");
+                        resultset = resultset.Replace("<tag k=\"addr:street\" v=\"" + dr["OStreetName"].ToString().Trim() + "\" />", "<tag k=\"addr:street\" v=\"" + dr["StreetName"].ToString().Trim() + "\" />");
+                        System.Text.RegularExpressions.Regex rgx = new System.Text.RegularExpressions.Regex("<tag k=\"addr:source\" v=\"Gatineau.ca/donneesouvertes [A-Za-z0-9]*\" />");
+                        if(resultset==rgx.Replace(resultset,"<tag k='addr:source' v='Gatineau.ca/donneesouvertes "+ DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() +"' />"))
+                        {
+                            XmlDocument process = new XmlDocument();
+                            process.LoadXml(resultset);
+                            XmlNodeList ndlist = null;
+                            switch(Type)
+                            {
+                                case OSMEntityType.node:
+                                    ndlist=process.SelectNodes("//node");
+                                break;
+                                case OSMEntityType.way:
+                                    ndlist=process.SelectNodes("//way");
+                                break;
+                            }
+                            XmlDocument doc = new XmlDocument();
+                            doc.LoadXml("<tag k='addr:source' v='Gatineau.ca/donneesouvertes "+ DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() +"' />");
+                            ndlist[0].AppendChild(doc.DocumentElement);
+                            resultset = process.InnerXml;                        
+                        }
+                        else
+                        {
+                            resultset = rgx.Replace(resultset, "<tag k='addr:source' v='Gatineau.ca/donneesouvertes " + DateTime.Now.Day.ToString().PadLeft(2, '0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() + "' />");
+                        }
+                        switch (Type)
+                        {
+                            case OSMEntityType.node:
+                                resultset = resultset.Replace("<node", "<node action='modify'");
+                            break;
+                            case OSMEntityType.way:
+                                resultset = resultset.Replace("<way", "<way action='modify'");
+                            break;
+                        }
+                        sw.WriteLine(resultset);                      
+                    break;
+                    case "New Node":
+                        m_node_id++;
+                        m_Worker.ReportProgress(Int32.Parse(Math.Round(perc).ToString()), "Processing New Node");
+                        sw.WriteLine("<node id='-" + m_node_id.ToString() + "' lat='" + extract_lat_long(dr["Geom"].ToString(), true) + "' lon='" + extract_lat_long(dr["Geom"].ToString(), false) + "'>");
+                        sw.WriteLine("\t<tag k='addr:city' v='Gatineau' />");
+                        sw.WriteLine("\t<tag k='addr:housenumber' v='" + dr["Addr_No"].ToString() + "' />");
+                        sw.WriteLine("\t<tag k='addr:street' v='" + dr["StreetName"].ToString().Replace("'", "&apos;").Trim() + "' />");
+                        sw.WriteLine("\t<tag k='addr:source' v='Gatineau.ca/donneesouvertes "+ DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() +"' />");
+                        sw.WriteLine("</node>");                        
+                    break;
                 }
             }
-            while (count > 0); // any more data to read?
-            XmlDocument xml = new XmlDocument();
-            xml.LoadXml(sb.ToString());
-            return xml.SelectNodes("//osm/" + Type.ToString())[0].OuterXml;
-        }
-
-        private void write_changeset(ref StreamWriter sw, DataSet dt)
-        {
+            m_Worker.ReportProgress(100, "Done!");
 
         }
         private DataTable CompareData(ref SQLiteConnection conn)
@@ -553,7 +662,7 @@ namespace WindowsFormsApplication1
             sw.WriteLine("\t<tag k='addr:city' v='Gatineau' />");
             sw.WriteLine("\t<tag k='addr:housenumber' v='" + info[3].ToString() + "' />");
             sw.WriteLine("\t<tag k='addr:street' v='" + iif(info[4].Replace("'", "&apos;").Trim() != String.Empty, info[4].Replace("'", "&apos;").Trim() + " ", "") + iif(info[5].Replace("'", "&apos;").Trim() != String.Empty, info[5].Replace("'", "&apos;").Trim() + " ", "") + iif(info[6].Replace("'", "&apos;").Trim() != String.Empty, info[6].Replace("'", "&apos;").Trim(), "") + "' />");
-            sw.WriteLine("\t<tag k='addr:source' v='Gatineau.ca/donneesouvertes 05Sept2015' />");
+            sw.WriteLine("\t<tag k='addr:source' v='Gatineau.ca/donneesouvertes " + DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() + "' />");
             sw.WriteLine("</node>");
         } 
 
