@@ -278,7 +278,7 @@ namespace WindowsFormsApplication1
             foreach (XmlNode node in nodes)
             {
                 //Check if data matches query address
-                if(node.InnerXml.ToString().Contains("<tag k=\"addr:source\" v=\"Gatineau.ca/donneesouvertes"))
+                if (node.InnerXml.ToString().Contains("<tag k=\"addr:source\" v=\"Gatineau.ca/donneesouvertes") || node.InnerXml.ToString().Contains("<tag k=\"source:addr\" v=\"Gatineau.ca/donneesouvertes"))
                 {   //add to return buffer
                     sb.AppendLine(node.OuterXml);
                     Type = OSMEntityType.node;
@@ -411,7 +411,8 @@ namespace WindowsFormsApplication1
                         resultset=resultset.Replace("<tag k=\"addr:housenumber\" v=\"" + dr["OAddr_No"].ToString().Trim() + "\" />", "<tag k=\"addr:housenumber\" v=\"" + dr["Addr_No"].ToString().Trim() + "\" />");
                         resultset = resultset.Replace("<tag k=\"addr:street\" v=\"" + dr["OStreetName"].ToString().Trim() + "\" />", "<tag k=\"addr:street\" v=\"" + dr["StreetName"].ToString().Trim() + "\" />");
                         System.Text.RegularExpressions.Regex rgx = new System.Text.RegularExpressions.Regex("<tag k=\"addr:source\" v=\"Gatineau.ca/donneesouvertes [A-Za-z0-9]*\" />");
-                        if(resultset==rgx.Replace(resultset,"<tag k='addr:source' v='Gatineau.ca/donneesouvertes "+ DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() +"' />"))
+                        System.Text.RegularExpressions.Regex rgx2 = new System.Text.RegularExpressions.Regex("<tag k=\"source:addr\" v=\"Gatineau.ca/donneesouvertes [A-Za-z0-9]*\" />");
+                        if((resultset==rgx.Replace(resultset,"<tag k='source:addr' v='Gatineau.ca/donneesouvertes "+ DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() +"' />")) && (resultset==rgx2.Replace(resultset,"<tag k='source:addr' v='Gatineau.ca/donneesouvertes "+ DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() +"' />")))
                         {
                             XmlDocument process = new XmlDocument();
                             process.LoadXml(resultset);
@@ -426,13 +427,15 @@ namespace WindowsFormsApplication1
                                 break;
                             }
                             XmlDocument doc = new XmlDocument();
-                            doc.LoadXml("<tag k='addr:source' v='Gatineau.ca/donneesouvertes "+ DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() +"' />");
+                            doc.LoadXml("<tag k='source:addr' v='Gatineau.ca/donneesouvertes "+ DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() +"' />");
                             ndlist[0].AppendChild(doc.DocumentElement);
                             resultset = process.InnerXml;                        
                         }
                         else
                         {
-                            resultset = rgx.Replace(resultset, "<tag k='addr:source' v='Gatineau.ca/donneesouvertes " + DateTime.Now.Day.ToString().PadLeft(2, '0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() + "' />");
+                            resultset = rgx.Replace(resultset, "<tag k='source:addr' v='Gatineau.ca/donneesouvertes " + DateTime.Now.Day.ToString().PadLeft(2, '0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() + "' />");
+                            resultset = rgx2.Replace(resultset, "<tag k='source:addr' v='Gatineau.ca/donneesouvertes " + DateTime.Now.Day.ToString().PadLeft(2, '0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() + "' />");
+
                         }
                         switch (Type)
                         {
@@ -452,7 +455,7 @@ namespace WindowsFormsApplication1
                         sw.WriteLine("\t<tag k='addr:city' v='Gatineau' />");
                         sw.WriteLine("\t<tag k='addr:housenumber' v='" + dr["Addr_No"].ToString() + "' />");
                         sw.WriteLine("\t<tag k='addr:street' v='" + dr["StreetName"].ToString().Replace("'", "&apos;").Trim() + "' />");
-                        sw.WriteLine("\t<tag k='addr:source' v='Gatineau.ca/donneesouvertes "+ DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() +"' />");
+                        sw.WriteLine("\t<tag k='source:addr' v='Gatineau.ca/donneesouvertes "+ DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() +"' />");
                         sw.WriteLine("</node>");                        
                     break;
                 }
@@ -662,7 +665,7 @@ namespace WindowsFormsApplication1
             sw.WriteLine("\t<tag k='addr:city' v='Gatineau' />");
             sw.WriteLine("\t<tag k='addr:housenumber' v='" + info[3].ToString() + "' />");
             sw.WriteLine("\t<tag k='addr:street' v='" + iif(info[4].Replace("'", "&apos;").Trim() != String.Empty, info[4].Replace("'", "&apos;").Trim() + " ", "") + iif(info[5].Replace("'", "&apos;").Trim() != String.Empty, info[5].Replace("'", "&apos;").Trim() + " ", "") + iif(info[6].Replace("'", "&apos;").Trim() != String.Empty, info[6].Replace("'", "&apos;").Trim(), "") + "' />");
-            sw.WriteLine("\t<tag k='addr:source' v='Gatineau.ca/donneesouvertes " + DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() + "' />");
+            sw.WriteLine("\t<tag k='source:addr' v='Gatineau.ca/donneesouvertes " + DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() + "' />");
             sw.WriteLine("</node>");
         } 
 
