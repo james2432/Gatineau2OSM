@@ -86,7 +86,7 @@ namespace WindowsFormsApplication1
                 curr = file.ReadLine();
                 while (file.EndOfStream == false)
                 {
-                    String[] info = curr.Split('|');
+                    String[] info = curr.Split(new string[]{"\",\""},StringSplitOptions.None);
                     write_addressnode(ref outfile, ref info);
 
                     curr = file.ReadLine();
@@ -564,7 +564,12 @@ namespace WindowsFormsApplication1
                 do
                 {
                     line = sr.ReadLine();
-                    target.Insert(line.Split('|'));
+                    line = line.Replace("\"{", "{");
+                    if (line.Length > 2)
+                    {
+                        line = line.Substring(0, line.Length - 1);
+                    }
+                    target.Insert(line.Split(new string[]{"\",\""},StringSplitOptions.None));
                 }
                 while (sr.EndOfStream == false);
                 target.Flush();
@@ -661,6 +666,8 @@ namespace WindowsFormsApplication1
         private void write_addressnode(ref System.IO.StreamWriter sw, ref String[] info)
         {
             m_node_id++;
+            info[0]=info[0].Replace("\"","");
+            info[info.Length - 1] = info[info.Length - 1].Replace("\"", "");
             sw.WriteLine("<node id='-" + m_node_id.ToString() + "' lat='" + extract_lat_long(info[10], true) + "' lon='" + extract_lat_long(info[10], false) + "'>");
             sw.WriteLine("\t<tag k='addr:city' v='Gatineau' />");
             sw.WriteLine("\t<tag k='addr:housenumber' v='" + info[3].ToString() + "' />");

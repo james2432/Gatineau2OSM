@@ -116,6 +116,10 @@ namespace WindowsFormsApplication1
         }
         public void Insert(object[] paramValues)
         {
+            if (paramValues.Length == 0)
+            {
+                return;
+            }
             if (paramValues.Length != m_parameters.Count)
                 throw new Exception("The values array count must be equal to the count of the number of parameters.");
 
