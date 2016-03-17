@@ -83,11 +83,21 @@ namespace WindowsFormsApplication1
                 System.IO.StreamReader file = new System.IO.StreamReader(txtDataset.Text);
 
                 write_fileheader(ref outfile);
-                file.ReadLine(); // Skip header
+                String line;
+                line = file.ReadLine(); //Read header
+                List<String> headercols = new List<String>();
+                line = line.Trim().Substring(1, line.Trim().Length - 2);
+                String[] split = line.Split(new string[] { "\",\"" }, StringSplitOptions.None);
+                foreach (string s in split)
+                {
+                    headercols.Add(s);
+                }
+
                 curr = file.ReadLine();
                 while (file.EndOfStream == false)
                 {
-                    String[] info = curr.Split(new string[]{"\",\""},StringSplitOptions.None);
+                    string[] tmp = curr.Split(new string[] { "\",\"" }, StringSplitOptions.None);
+                    String[] info = new String[]{ tmp[headercols.IndexOf("ENTITEID")], tmp[headercols.IndexOf("CODEID")], tmp[headercols.IndexOf("MUNID")], tmp[headercols.IndexOf("NUMERO_CIV")], tmp[headercols.IndexOf("GENERIQUE")], tmp[headercols.IndexOf("LIAISON")], tmp[headercols.IndexOf("SPECIFIQUE")], tmp[headercols.IndexOf("DIRECTION")], tmp[headercols.IndexOf("ADR_COMPLE")], tmp[headercols.IndexOf("RUESID")], tmp[headercols.IndexOf("GEOM")] };
                     write_addressnode(ref outfile, ref info);
 
                     curr = file.ReadLine();
