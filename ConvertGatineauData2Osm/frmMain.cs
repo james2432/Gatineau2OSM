@@ -13,6 +13,7 @@ using System.IO;
 using System.Xml;
 using System.Xml.XPath;
 using System.Drawing;
+using System.Collections;
 namespace WindowsFormsApplication1
 {
     public partial class frmMain : Form
@@ -559,17 +560,24 @@ namespace WindowsFormsApplication1
             System.IO.StreamReader sr = new System.IO.StreamReader(filepath);
             try
             {
-                sr.ReadLine(); //Skip header
                 String line;
+                line=sr.ReadLine(); //Read header
+                List<String> headercols = new List<String>();
+                line = line.Trim().Substring(1, line.Trim().Length - 2);
+                String[] split = line.Split(new string[] { "\",\"" }, StringSplitOptions.None);
+                foreach (string s in split)
+                {
+                    headercols.Add(s);
+                }
                 do
                 {
                     line = sr.ReadLine();
-                    line = line.Replace("\"{", "{");
                     if (line.Length > 2)
                     {
-                        line = line.Substring(0, line.Length - 1);
+                        line = line.Substring(1, line.Length - 2);
                     }
-                    target.Insert(line.Split(new string[]{"\",\""},StringSplitOptions.None));
+                    string[] tmp = line.Split(new string[] { "\",\"" }, StringSplitOptions.None);
+                    target.Insert(new Object[] { tmp[headercols.IndexOf("ENTITEID")], tmp[headercols.IndexOf("CODEID")], tmp[headercols.IndexOf("MUNID")], tmp[headercols.IndexOf("NUMERO_CIV")], tmp[headercols.IndexOf("GENERIQUE")], tmp[headercols.IndexOf("LIAISON")], tmp[headercols.IndexOf("SPECIFIQUE")], tmp[headercols.IndexOf("DIRECTION")], tmp[headercols.IndexOf("ADR_COMPLE")], tmp[headercols.IndexOf("RUESID")], tmp[headercols.IndexOf("GEOM")] });
                 }
                 while (sr.EndOfStream == false);
                 target.Flush();
