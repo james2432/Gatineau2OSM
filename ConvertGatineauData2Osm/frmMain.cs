@@ -283,6 +283,7 @@ namespace WindowsFormsApplication1
             xml.LoadXml(sb.ToString());
             sb.Clear();//output for node or way xml
 
+
             //Address is a Node ***************************************
             //Get nodes that have children : we need Tag elements
             XmlNodeList nodes = xml.SelectNodes("//osm/node");
@@ -326,7 +327,12 @@ namespace WindowsFormsApplication1
                     }
                     sb.AppendLine(nodes[i].OuterXml);
                 }
-            }  
+            }
+            if (Type == OSMEntityType.way) //XML can only have one root element
+            {
+                sb.Insert(0, "<osm>");
+                sb.AppendLine("</osm>");
+            }
             //Get way tags
             //Check if data matches query address
             //Add to return buffer
@@ -434,12 +440,18 @@ namespace WindowsFormsApplication1
                                     ndlist=process.SelectNodes("//node");
                                 break;
                                 case OSMEntityType.way:
-                                    ndlist=process.SelectNodes("//way");
+                                    ndlist=process.SelectNodes("/osm/way");
                                 break;
                             }
-                            XmlDocument doc = new XmlDocument();
-                            doc.LoadXml("<tag k='source:addr' v='Gatineau.ca/donneesouvertes "+ DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() +"' />");
-                            ndlist[0].AppendChild(doc.DocumentElement);
+                            XmlNode xmn= process.CreateNode(XmlNodeType.Element, "tag", "");
+                            XmlAttribute attr = process.CreateAttribute("k");
+                            attr.Value = "source:addr";
+                            xmn.Attributes.SetNamedItem(attr);
+                            attr = process.CreateAttribute("v");
+                            attr.Value = "Gatineau.ca/donneesouvertes " + DateTime.Now.Day.ToString().PadLeft(2, '0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString();
+                            xmn.Attributes.SetNamedItem(attr);
+                            //doc.LoadXml("<tag k='source:addr' v='Gatineau.ca/donneesouvertes "+ DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() +"' />");
+                            ndlist[0].AppendChild(xmn);
                             resultset = process.InnerXml;                        
                         }
                         else
@@ -504,7 +516,7 @@ namespace WindowsFormsApplication1
                                                     select a.ENTITEID,a.CODEID,a.MUNID,a.NUMERO_CIV,a.GENERIQUE,a.LIAISON,a.SPECIFIQUE,a.DIRECTION,a.ADDR_COMPLE,a.RUESID,a.GEOM,a.NUMERO_CIV, REPLACE (IFNULL(a.GENERIQUE,null)||case when a.GENERIQUE is not null then ' ' else null end|| IFNULL(a.LIAISON,null)||case when a.LIAISON is not null and not substr(a.LIAISON,-1)='''' then ' ' when substr(a.LIAISON,-1)='''' then '' else null end||IFNULL(a.SPECIFIQUE,null)||case when a.SPECIFIQUE is not null and a.DIRECTION is not null then ' ' else null end||IFNULL(a.DIRECTION,null),'  ',' ') Street,b.ENTITEID ENTITEID_1,b.CODEID CODEID_1,b.MUNID MUNID_1,b.NUMERO_CIV NUMERO_CIV_1,b.GENERIQUE GENERIQUE_1,b.LIAISON LIAISON_1,b.SPECIFIQUE SPECIFIQUE_1,b.DIRECTION DIRECTION_1,b.ADDR_COMPLE ADDR_COMPLE_1,b.RUESID RUESID_1,b.GEOM GEOM_1,b.NUMERO_CIV NUMERO_CIV_1, REPLACE(IFNULL(b.GENERIQUE,null)||case when b.GENERIQUE is not null then ' ' else null end||IFNULL(b.LIAISON,null)||case when b.LIAISON is not null and not substr(b.LIAISON,-1)='''' then ' ' when substr(b.LIAISON,-1)='''' then '' else null end||IFNULL(b.SPECIFIQUE,null)||case when b.SPECIFIQUE is not null and b.DIRECTION is not null then ' ' else null end||IFNULL(b.DIRECTION,null),'  ',' ') Street_1 from newer_data a 
                                                     left join older_data b 
                                                     on a.ENTITEID=b.ENTITEID
-                                                    where (b.ENTITEID is null) or (a.ADDR_COMPLE<>b.ADDR_COMPLE)
+                                                    where (b.ENTITEID is null) or (trim(a.ADDR_COMPLE)<>trim(b.ADDR_COMPLE))
                                                     UNION ALL
                                                     select b.ENTITEID,b.CODEID,b.MUNID,b.NUMERO_CIV,b.GENERIQUE,b.LIAISON,b.SPECIFIQUE,b.DIRECTION,b.ADDR_COMPLE,b.RUESID,b.GEOM,b.NUMERO_CIV, REPLACE(IFNULL(b.GENERIQUE,null)||case when b.GENERIQUE is not null then ' ' else null end||IFNULL(b.LIAISON,null)||case when b.LIAISON is not null and not substr(b.LIAISON,-1)='''' then ' ' when substr(b.LIAISON,-1)='''' then ''  else null end||IFNULL(b.SPECIFIQUE,null)||case when b.SPECIFIQUE is not null and b.DIRECTION is not null then ' ' else null end||IFNULL(b.DIRECTION,null),'  ',' ') Street,a.ENTITEID ENTITEID_1,a.CODEID CODEID_1,a.MUNID MUNID_1,a.NUMERO_CIV NUMERO_CIV_1,a.GENERIQUE GENERIQUE_1,a.LIAISON LIAISON_1,a.SPECIFIQUE SPECIFIQUE_1,a.DIRECTION DIRECTION_1,a.ADDR_COMPLE ADDR_COMPLE_1,a.RUESID RUESID_1,a.GEOM GEOM_1,a.NUMERO_CIV NUMERO_CIV_1, REPLACE(IFNULL(a.GENERIQUE,null)||case when a.GENERIQUE is not null then ' ' else null end||IFNULL(a.LIAISON,null)||case when a.LIAISON is not null and not substr(a.LIAISON,-1)='''' then ' ' when substr(a.LIAISON,-1)='''' then '' else null end||IFNULL(a.SPECIFIQUE,null)||case when a.SPECIFIQUE is not null and a.DIRECTION is not null then ' ' else null end||IFNULL(a.DIRECTION,null),'  ', ' ') Street_1 from older_data a
                                                     left join newer_data b
