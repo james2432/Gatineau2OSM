@@ -452,7 +452,8 @@ namespace WindowsFormsApplication1
                             xmn.Attributes.SetNamedItem(attr);
                             //doc.LoadXml("<tag k='source:addr' v='Gatineau.ca/donneesouvertes "+ DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() +"' />");
                             ndlist[0].AppendChild(xmn);
-                            resultset = process.InnerXml;                        
+                            resultset = process.InnerXml;
+                            resultset.Replace("<osm>", "").Replace("</osm>", "");
                         }
                         else
                         {
