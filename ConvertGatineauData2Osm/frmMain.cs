@@ -229,7 +229,7 @@ namespace WindowsFormsApplication1
 #region "Helper Functions"
         private String getOSMID(String Addr_No, String Street,ref OSMEntityType Type)
         {
-            String searchquery = "http://www.overpass-api.de/api/xapi_meta?*" + System.Web.HttpUtility.UrlEncode(String.Format("[addr:housenumber={0}][addr:street={1}][bbox=-76.1977822,45.29.25.678,-75.0442178,45.7974984]",Addr_No,Street));
+            String searchquery = "http://www.overpass-api.de/api/xapi_meta?*" + System.Web.HttpUtility.UrlEncode(String.Format("[addr:housenumber={0}][addr:street={1}][bbox=-76.1977822,45.29.25.678,-75.0442178,45.7974984]", Addr_No, Street));
             String responsexml;
             // used to build entire input
             StringBuilder sb = new StringBuilder();
@@ -241,7 +241,7 @@ namespace WindowsFormsApplication1
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(searchquery);
 
             // execute the request
-            HttpWebResponse response=null;
+            HttpWebResponse response = null;
             Boolean failed = true;
             while (failed)
             {
@@ -253,7 +253,7 @@ namespace WindowsFormsApplication1
                 catch (Exception ex)
                 {
                     Thread.Sleep(30000);
-                    request=(HttpWebRequest)WebRequest.Create(searchquery);
+                    request = (HttpWebRequest)WebRequest.Create(searchquery);
                 }
             }
             // we will read data via the response stream
@@ -295,14 +295,14 @@ namespace WindowsFormsApplication1
                     sb.AppendLine(node.OuterXml);
                     Type = OSMEntityType.node;
                 }
-            }       
+            }
             //End Address is a Node ***********************************
 
-            
+
             //Address is a Way ****************************************
             nodes = xml.SelectNodes("//osm/way");
             List<String> refNodes = new List<String>();
-            for(int i=0;i<nodes.Count;i++)
+            for (int i = 0; i < nodes.Count; i++)
             {
                 //Add nodes that might be associated with way
                 if (nodes[i].InnerXml.ToString().Contains(String.Format("<tag k=\"addr:housenumber\" v=\"{0}\" />", Addr_No)) && nodes[i].InnerXml.ToString().Contains(String.Format("<tag k=\"addr:street\" v=\"{0}\" />", Street)))
@@ -338,7 +338,6 @@ namespace WindowsFormsApplication1
             //Add to return buffer
             //fetch nodes associated with way.
             //End Address is a Way ************************************
-
             return sb.ToString();
 
         }
@@ -453,7 +452,7 @@ namespace WindowsFormsApplication1
                             //doc.LoadXml("<tag k='source:addr' v='Gatineau.ca/donneesouvertes "+ DateTime.Now.Day.ToString().PadLeft(2,'0') + monthstr[DateTime.Now.Month] + DateTime.Now.Year.ToString() +"' />");
                             ndlist[0].AppendChild(xmn);
                             resultset = process.InnerXml;
-                            resultset.Replace("<osm>", "").Replace("</osm>", "");
+                            resultset=resultset.Replace("<osm>", "").Replace("</osm>", "");
                         }
                         else
                         {
